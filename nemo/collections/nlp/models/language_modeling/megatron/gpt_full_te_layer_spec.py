@@ -16,7 +16,6 @@ from nemo.collections.nlp.modules.common.megatron.utils import ApexGuardDefaults
 
 try:
     from megatron.core.transformer.spec_utils import ModuleSpec
-    from megatron.core.transformer.transformer_layer import TransformerLayer
 
     HAVE_MEGATRON_CORE = True
 
@@ -25,6 +24,8 @@ except (ImportError, ModuleNotFoundError):
     HAVE_MEGATRON_CORE = False
 
     ModuleSpec = ApexGuardDefaults
+
+from transformer_engine.pytorch.module import TransformerLayer
 
 # Use this spec to use the full Transformer layer from Transformer Engine
 def get_gpt_full_te_layer_spec() -> ModuleSpec:
