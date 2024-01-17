@@ -477,9 +477,7 @@ class MegatronGPTModel(MegatronBaseModel, TextGeneration):
             used_params = set()
             for bucket in buckets:
                 used_params.update(bucket)
-            remaining_params = [p for p in self.parameters() if p not in used_params]
-            if remaining_params:
-                buckets.append(remaining_params)
+            buckets[-1].extend(p for p in self.parameters() if p not in used_params)
             self.distributed_adam_buckets = buckets
 
         return super().configure_optimizers()
