@@ -25,7 +25,16 @@ except (ImportError, ModuleNotFoundError):
 
     ModuleSpec = ApexGuardDefaults
 
-from transformer_engine.pytorch.module import TransformerLayer
+try:
+    import transformer_engine
+    from transformer_engine.pytorch.module import TransformerLayer
+
+    HAVE_TE = True
+
+except (ImportError, ModuleNotFoundError):
+
+    HAVE_TE = False
+
 
 # Use this spec to use the full Transformer layer from Transformer Engine
 def get_gpt_full_te_layer_spec() -> ModuleSpec:
