@@ -26,8 +26,7 @@ except (ImportError, ModuleNotFoundError):
     ModuleSpec = ApexGuardDefaults
 
 try:
-    import transformer_engine
-    from transformer_engine.pytorch.module import TransformerLayer
+    import transformer_engine.pytorch as te
 
     HAVE_TE = True
 
@@ -42,4 +41,7 @@ def get_gpt_full_te_layer_spec() -> ModuleSpec:
         raise ImportError(
             "megatron-core was not found. Please see the NeMo README for installation instructions: https://github.com/NVIDIA/NeMo#megatron-gpt."
         )
-    return ModuleSpec(module=TransformerLayer)
+    if not HAVE_TE:
+        raise ImportError("TransformerEngine was not found.")
+
+    return ModuleSpec(module=te.TransformerLayer)
