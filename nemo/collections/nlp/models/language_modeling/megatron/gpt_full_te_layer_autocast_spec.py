@@ -12,12 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from nemo.collections.nlp.modules.common.megatron.utils import ApexGuardDefaults
+import torch
+from nemo.collections.nlp.modules.common.megatron.utils import ApexGuardDefaults, init_method_normal, scaled_init_method_normal
 from nemo.collections.nlp.modules.common.megatron.transformer import AutocastTransformerLayer
 
 try:
     from megatron.core.transformer.spec_utils import ModuleSpec
     from megatron.core.transformer.transformer_block import TransformerBlockSubmodules
+    from megatron.core import parallel_state, tensor_parallel
 
     HAVE_MEGATRON_CORE = True
 
@@ -31,6 +33,11 @@ except (ImportError, ModuleNotFoundError):
 class TETransformerLayerAutocast(AutocastTransformerLayer):
     def __init__(self, config, layer_number=1, hidden_dropout=None):
         self.config = config
+
+        # TODO: Expose knobs instead of hardcoding
+        init_method_std = 0.006
+        init_method = init_method_normal(init_method_std)
+        scaled_init_method = init_method_normal(init_method_std) # Assumes use_scaled_init_method = False
 
         super().__init__(
             '''
@@ -60,6 +67,32 @@ class TETransformerLayerAutocast(AutocastTransformerLayer):
             zero_centered_gamma=normalization == 'layernorm1p',
             device='cpu' if config.use_cpu_initialization else 'cuda',
             '''
+            # Currently hardcoded for config_DGXH100_16x8x32x4x8_mbs1.sh
+            # TODO: Expose knobs through NeMo instead of hardcoding
+            hidden_size=12288,
+            ffn_hidden_size=49152,
+            layernorm_epsilon=1e-05,
+            num_attention_heads=96,
+            init_method=init_method,
+            output_layer_init_method=scaled_init_method,
+            hidden_dropout=0.0,
+            attention_dropout=0.0,
+            layer_number=9,
+            kv_channels=128,
+            self_attn_mask_type='causal',
+            tp_size=parallel_state.get_tensor_model_parallel_world_size(),
+            params_dtype=torch.bfloat16,
+            get_rng_state_tracker=tensor_parallel.random.get_cuda_rng_tracker,
+            fuse_wgrad_accumulation=True,
+            seq_length=None,  # used for jit warmup
+            micro_batch_size=None,  # used for jit warmup
+            sequence_parallel=True,
+            apply_residual_connection_post_layernorm=False,
+            autocast_dtype=16,
+            use_emha=False,
+            ub_tp_comm_overlap=True,
+            zero_centered_gamma=True,
+            device='cuda',
         )
 
     def forward(
