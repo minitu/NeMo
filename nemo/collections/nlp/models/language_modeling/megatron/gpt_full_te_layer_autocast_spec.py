@@ -39,36 +39,36 @@ class TETransformerLayerAutocast(AutocastTransformerLayer):
         init_method = init_method_normal(init_method_std)
         scaled_init_method = init_method_normal(init_method_std) # Assumes use_scaled_init_method = False
 
+        '''
+        # init from nemo/collections/nlp/modules/common/megatron/transformer.py#L1057
+        hidden_size=hidden_size,
+        ffn_hidden_size=ffn_hidden_size,
+        layernorm_epsilon=layernorm_epsilon,
+        num_attention_heads=num_attention_heads,
+        init_method=init_method,
+        output_layer_init_method=output_layer_init_method,
+        hidden_dropout=hidden_dropout,
+        attention_dropout=attention_dropout,
+        layer_number=layer_number + layer_number_offset,
+        kv_channels=kv_channels,
+        self_attn_mask_type=self_attn_mask_type.name,
+        tp_size=parallel_state.get_tensor_model_parallel_world_size(),
+        params_dtype=config.params_dtype,
+        get_rng_state_tracker=tensor_parallel.random.get_cuda_rng_tracker,
+        fuse_wgrad_accumulation=config.gradient_accumulation_fusion,
+        seq_length=None,  # used for jit warmup
+        micro_batch_size=None,  # used for jit warmup
+        sequence_parallel=config.sequence_parallel,
+        apply_residual_connection_post_layernorm=False,
+        autocast_dtype=precision,
+        use_emha=use_emha,
+        ub_tp_comm_overlap=ub_tp_comm_overlap,
+        zero_centered_gamma=normalization == 'layernorm1p',
+        device='cpu' if config.use_cpu_initialization else 'cuda',
+        '''
+        # Currently hardcoded for config_DGXH100_16x8x32x4x8_mbs1.sh
+        # TODO: Expose knobs through NeMo instead of hardcoding
         super().__init__(
-            '''
-            # init from nemo/collections/nlp/modules/common/megatron/transformer.py#L1057
-            hidden_size=hidden_size,
-            ffn_hidden_size=ffn_hidden_size,
-            layernorm_epsilon=layernorm_epsilon,
-            num_attention_heads=num_attention_heads,
-            init_method=init_method,
-            output_layer_init_method=output_layer_init_method,
-            hidden_dropout=hidden_dropout,
-            attention_dropout=attention_dropout,
-            layer_number=layer_number + layer_number_offset,
-            kv_channels=kv_channels,
-            self_attn_mask_type=self_attn_mask_type.name,
-            tp_size=parallel_state.get_tensor_model_parallel_world_size(),
-            params_dtype=config.params_dtype,
-            get_rng_state_tracker=tensor_parallel.random.get_cuda_rng_tracker,
-            fuse_wgrad_accumulation=config.gradient_accumulation_fusion,
-            seq_length=None,  # used for jit warmup
-            micro_batch_size=None,  # used for jit warmup
-            sequence_parallel=config.sequence_parallel,
-            apply_residual_connection_post_layernorm=False,
-            autocast_dtype=precision,
-            use_emha=use_emha,
-            ub_tp_comm_overlap=ub_tp_comm_overlap,
-            zero_centered_gamma=normalization == 'layernorm1p',
-            device='cpu' if config.use_cpu_initialization else 'cuda',
-            '''
-            # Currently hardcoded for config_DGXH100_16x8x32x4x8_mbs1.sh
-            # TODO: Expose knobs through NeMo instead of hardcoding
             hidden_size=12288,
             ffn_hidden_size=49152,
             layernorm_epsilon=1e-05,
