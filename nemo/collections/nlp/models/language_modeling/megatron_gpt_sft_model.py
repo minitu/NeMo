@@ -323,7 +323,7 @@ class MegatronGPTSFTModel(NLPAdapterModelMixin, MegatronGPTModel):
         else:
             return base_key + f"dataloader{dataloader_idx}"
 
-    def fwd_bwd_step(self, dataloader_iter, batch_idx, forward_only):
+    def fwd_bwd_step(self, dataloader_iter, batch_idx, forward_only, first_val_step=None):
         batch = next(dataloader_iter)
 
         log_token_counts = self.cfg.get('log_token_counts', False)
@@ -363,6 +363,7 @@ class MegatronGPTSFTModel(NLPAdapterModelMixin, MegatronGPTModel):
             forward_only=forward_only,
             seq_length=seq_length,
             micro_batch_size=get_micro_batch_size(),
+            first_val_step=first_val_step,
         )
 
         # only the last stages of the pipeline return losses
