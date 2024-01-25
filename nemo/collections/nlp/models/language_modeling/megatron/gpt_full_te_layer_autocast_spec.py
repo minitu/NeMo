@@ -34,6 +34,7 @@ except (ImportError, ModuleNotFoundError):
 class TETransformerLayerAutocast(AutocastTransformerLayer):
     def __init__(self, config, layer_number=1, hidden_dropout=None):
         self.config = config
+        precision = 'bf16' if config.bf16 else 16
 
         # TODO: Expose knobs instead of hardcoding
         init_method_std = 0.006
@@ -89,9 +90,9 @@ class TETransformerLayerAutocast(AutocastTransformerLayer):
             micro_batch_size=None,  # used for jit warmup
             sequence_parallel=True,
             apply_residual_connection_post_layernorm=False,
-            autocast_dtype=16,
+            autocast_dtype=precision,
             use_emha=False,
-            ub_tp_comm_overlap=True,
+            ub_tp_comm_overlap=config.tp_comm_overlap,
             zero_centered_gamma=True,
             device='cuda',
         )
