@@ -20,6 +20,7 @@ try:
     from megatron.core.transformer.spec_utils import ModuleSpec
     from megatron.core.transformer.transformer_block import TransformerBlockSubmodules
     from megatron.core import parallel_state, tensor_parallel
+    from megatron.core.transformer.utils import make_sharded_tensors_for_checkpoint
 
     HAVE_MEGATRON_CORE = True
 
@@ -116,6 +117,68 @@ class TETransformerLayerAutocast(AutocastTransformerLayer):
         context = None
 
         return hidden_states, context
+
+    def _get_layer_offset(self):
+
+        pipeline_rank = parallel_state.get_pipeline_model_parallel_rank()
+
+        num_layers_per_pipeline_rank = (
+            self.config.num_layers // parallel_state.get_pipeline_model_parallel_world_size()
+        )
+
+        if parallel_state.get_virtual_pipeline_model_parallel_world_size() is not None:
+            vp_rank = parallel_state.get_virtual_pipeline_model_parallel_rank()
+            vp_size = parallel_state.get_virtual_pipeline_model_parallel_world_size()
+
+            total_num_layers = self.config.num_layers
+            num_layers_per_virtual_rank = num_layers_per_pipeline_rank // vp_size
+            total_virtual_chunks = total_num_layers // vp_size
+            offset = vp_rank * total_virtual_chunks + (pipeline_rank * num_layers_per_virtual_rank)
+
+        else:
+            # Each stage gets a contiguous set of layers.
+            if parallel_state.get_pipeline_model_parallel_world_size() > 1:
+                offset = pipeline_rank * num_layers_per_pipeline_rank
+            else:
+                offset = 0
+
+        return offset
+
+    def sharded_state_dict(self, prefix: str = '', sharded_offsets: tuple = ()):
+        TE_LAYERS_MAP = {
+            "self_attention.layernorm_qkv.layer_norm_weight": "input_layernorm.weight",
+            "self_attention.layernorm_qkv.layer_norm_bias": "input_layernorm.bias",
+            "layernorm_mlp.layer_norm_weight": "post_attention_layernorm.weight",
+            "layernorm_mlp.layer_norm_bias": "post_attention_layernorm.bias",
+            "layernorm_mlp.fc1_weight": "mlp.dense_h_to_4h.weight",
+            "layernorm_mlp.fc1_bias": "mlp.dense_h_to_4h.bias",
+            "layernorm_mlp.fc2_weight": "mlp.dense_4h_to_h.weight",
+            "layernorm_mlp.fc2_bias": "mlp.dense_4h_to_h.bias",
+            "self_attention.layernorm_qkv.weight": "self_attention.query_key_value.weight",
+            "self_attention.layernorm_qkv.bias": "self_attention.query_key_value.bias",
+            "self_attention.proj.weight": "self_attention.dense.weight",
+            "self_attention.proj.bias": "self_attention.dense.bias",
+        }
+
+        TENSOR_PARALLEL_LAYERS_AXIS_MAP = {
+            'self_attention.layernorm_qkv.weight': 0,
+            'self_attention.layernorm_qkv.bias': 0,
+            "self_attention.proj.weight": 1,
+            "layernorm_mlp.fc1_weight": 0,
+            "layernorm_mlp.fc1_bias": 0,
+            "layernorm_mlp.fc2_weight": 1,
+        }
+
+        state_dict = self.state_dict(prefix='', keep_vars=True)
+        sharded_state_dict = make_sharded_tensors_for_checkpoint(state_dict, prefix, TENSOR_PARALLEL_LAYERS_AXIS_MAP, sharded_offsets)
+
+        prefixed_map = {f'{prefix}{k}': f'{prefix}{v}' for k, v in TE_LAYERS_MAP.items()}
+
+        for k, v in sharded_state_dict.items():
+            if not v.key.endswith('_extra_state'):
+                v.key = prefixed_map[v.key]
+
+        return sharded_state_dict
 
 # Use this spec to use the full Transformer layer from Transformer Engine
 def get_gpt_full_te_layer_autocast_spec() -> TransformerBlockSubmodules:
