@@ -77,7 +77,7 @@ class TETransformerLayerAutocast(AutocastTransformerLayer):
             output_layer_init_method=scaled_init_method,
             hidden_dropout=0.0,
             attention_dropout=0.0,
-            layer_number=9,
+            #layer_number=9,
             kv_channels=128,
             self_attn_mask_type='causal',
             tp_size=parallel_state.get_tensor_model_parallel_world_size(),
