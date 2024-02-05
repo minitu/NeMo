@@ -70,6 +70,12 @@ class AutocastTransformerLayer(TransformerLayer):
         drop_path_rate: float = 0,
         use_emha: bool = False,
         ub_tp_comm_overlap: bool = False,
+        ub_bulk_wgrad: bool = True,
+        ub_bulk_dgrad: bool = True,
+        ub_split_ag: bool = True,
+        ub_split_rs: bool = True,
+        ub_atomic_gemm_ag: bool = False,
+        ub_atomic_gemm_rs: bool = False,
         autocast_dtype: Any = 16,
         zero_centered_gamma: bool = False,
         device: str = 'cuda',
@@ -102,6 +108,12 @@ class AutocastTransformerLayer(TransformerLayer):
             fuse_qkv_params=True,
             zero_centered_gamma=zero_centered_gamma,
             ub_tp_comm_overlap=ub_tp_comm_overlap,
+            ub_bulk_wgrad=ub_bulk_wgrad,
+            ub_bulk_dgrad=ub_bulk_dgrad,
+            ub_split_ag=ub_split_ag,
+            ub_split_rs=ub_split_rs,
+            ub_atomic_gemm_ag=ub_atomic_gemm_ag,
+            ub_atomic_gemm_rs=ub_atomic_gemm_rs,
             device=device,
         )
         # use_emha=use_emha,
@@ -170,6 +182,12 @@ class TETransformerLayerAutocast(AutocastTransformerLayer):
             autocast_dtype=precision,
             #use_emha=False, # Use default 'False'
             ub_tp_comm_overlap=config.tp_comm_overlap, # TODO: ub_tp_comm_overlap?
+            ub_bulk_wgrad=config.tp_comm_bulk_wgrad,
+            ub_bulk_dgrad=config.tp_comm_bulk_dgrad,
+            ub_split_ag=config.tp_comm_split_ag,
+            ub_split_rs=config.tp_comm_split_rs,
+            ub_atomic_gemm_ag=config.tp_comm_atomic_ag,
+            ub_atomic_gemm_rs=config.tp_comm_atomic_rs,
             zero_centered_gamma=config.layernorm_zero_centered_gamma,
             device='cpu' if config.use_cpu_initialization else 'cuda',
         )
