@@ -19,7 +19,7 @@ from nemo.collections.nlp.parts import utils_funcs
 
 try:
     from megatron.core.transformer.spec_utils import ModuleSpec
-    from megatron.core.transformer.transformer_block import TransformerBlockSubmodules
+    from megatron.core.transformer.transformer_layer import BaseTransformerLayer
     from megatron.core import parallel_state, tensor_parallel
     from megatron.core.transformer.utils import make_sharded_tensors_for_checkpoint
 
@@ -141,7 +141,7 @@ class AutocastTransformerLayer(TransformerLayer):
             )
 
 
-class TETransformerLayerAutocast(AutocastTransformerLayer):
+class TETransformerLayerAutocast(AutocastTransformerLayer, BaseTransformerLayer):
     def __init__(self, config, layer_number=1, hidden_dropout=None):
         self.config = config
         self.is_first_microbatch = True
@@ -262,7 +262,7 @@ class TETransformerLayerAutocast(AutocastTransformerLayer):
         return sharded_state_dict
 
 # Use this spec to use the full Transformer layer from Transformer Engine
-def get_gpt_full_te_layer_autocast_spec() -> TransformerBlockSubmodules:
+def get_gpt_full_te_layer_autocast_spec() -> ModuleSpec:
     if not HAVE_MEGATRON_CORE:
         raise ImportError(
             "megatron-core was not found. Please see the NeMo README for installation instructions: https://github.com/NVIDIA/NeMo#megatron-gpt."
@@ -272,6 +272,4 @@ def get_gpt_full_te_layer_autocast_spec() -> TransformerBlockSubmodules:
             "TransformerEngine was not found. Please see the NeMo README for installation instructions: https://github.com/NVIDIA/NeMo#megatron-gpt."
         )
 
-    return TransformerBlockSubmodules(
-        layer_specs=ModuleSpec(module=TETransformerLayerAutocast)
-    )
+    return ModuleSpec(module=TETransformerLayerAutocast)
