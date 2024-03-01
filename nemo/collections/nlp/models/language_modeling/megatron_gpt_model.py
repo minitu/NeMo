@@ -18,7 +18,7 @@ import queue
 import warnings
 from contextlib import nullcontext
 from dataclasses import fields
-from functools import partial
+from functools import cache, partial
 from typing import Any, Dict, Iterator, List, Optional, Union
 
 import torch
