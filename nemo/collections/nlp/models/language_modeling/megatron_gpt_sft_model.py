@@ -89,9 +89,6 @@ class MegatronGPTSFTModel(NLPAdapterModelMixin, MegatronGPTModel):
             if hasattr(self.cfg.data.test_ds, "metric"):
                 self.test_metric_label_key = self.cfg.data.test_ds.metric.get('label_key', 'labels')
 
-        if self.use_peft and self.cfg.get('virtual_pipeline_model_parallel_size', None):
-            raise ValueError('Virtual pipeline model parallel is not supported when using PEFT')
-
         # Set the profile start and end steps in the unit of global batach
         if hasattr(self, '_nsys_profile_enabled'):
             self._nsys_profile_start_step = self.cfg.nsys_profile.get('start_step', 0)
@@ -323,7 +320,7 @@ class MegatronGPTSFTModel(NLPAdapterModelMixin, MegatronGPTModel):
         else:
             return base_key + f"dataloader{dataloader_idx}"
 
-    def fwd_bwd_step(self, dataloader_iter, batch_idx, forward_only):
+    def fwd_bwd_step(self, dataloader_iter, batch_idx, forward_only, first_val_step=None):
         batch = next(dataloader_iter)
 
         log_token_counts = self.cfg.get('log_token_counts', False)
@@ -363,6 +360,7 @@ class MegatronGPTSFTModel(NLPAdapterModelMixin, MegatronGPTModel):
             forward_only=forward_only,
             seq_length=seq_length,
             micro_batch_size=get_micro_batch_size(),
+            first_val_step=first_val_step,
         )
 
         # only the last stages of the pipeline return losses
