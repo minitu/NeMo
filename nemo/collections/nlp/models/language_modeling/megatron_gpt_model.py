@@ -33,6 +33,7 @@ from nemo.collections.nlp.data.language_modeling.megatron.data_samplers import (
     MegatronPretrainingRandomSampler,
     MegatronPretrainingSampler,
 )
+from nemo.collections.nlp.data.language_modeling.megatron.gpt_dataset import build_train_valid_test_datasets
 from nemo.collections.nlp.data.language_modeling.megatron.gpt_fim_dataset import (
     GPTFIMDataset,
     GPTFIMDatasetConfig,
@@ -1204,6 +1205,20 @@ class MegatronGPTModel(MegatronBaseModel, TextGeneration):
                 1
             ] = 1  # This is to make sure we only have one epoch on every validation iteration
 
+        self._train_ds, self._validation_ds, self._test_ds = build_train_valid_test_datasets(
+            cfg=self.cfg,
+            trainer=self.trainer,
+            data_prefix=self.cfg.data.data_prefix,
+            data_impl=self.cfg.data.data_impl,
+            splits_string=self.cfg.data.splits_string,
+            train_valid_test_num_samples=train_valid_test_num_samples,
+            seq_length=self.cfg.data.seq_length,
+            seed=self.cfg.seed,
+            skip_warmup=self.cfg.data.get('skip_warmup', True),
+            tokenizer=self.tokenizer,
+        )
+
+        '''
         mock_dataset = self.cfg.data.get("mock_dataset", False)
         kwargs = {
             "is_built_on_rank": is_dataset_built_on_rank,
@@ -1237,6 +1252,7 @@ class MegatronGPTModel(MegatronBaseModel, TextGeneration):
             self._train_ds, self._validation_ds, self._test_ds = BlendedMegatronDatasetBuilder(
                 dataset_type, train_valid_test_num_samples, dataset_config,
             ).build()
+        '''
 
         if self._train_ds is not None:
             logging.info(f'Length of train dataset: {len(self._train_ds)}')
