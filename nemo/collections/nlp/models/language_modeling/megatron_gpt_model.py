@@ -994,6 +994,8 @@ class MegatronGPTModel(MegatronBaseModel, TextGeneration):
 
             # Get data batch
             batch = next(dataloader_iter)
+            if isinstance(batch, tuple):
+                batch = batch[0]
 
             # Transfer needed data to GPU
             required_keys = set()
