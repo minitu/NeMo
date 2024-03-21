@@ -800,6 +800,7 @@ class AutocastTransformerLayer(TransformerLayer):
         ub_bulk_dgrad: bool = True,
         ub_overlap_ag: bool = True,
         ub_overlap_rs: bool = True,
+        ub_overlap_rs_dgrad: bool = False,
         autocast_dtype: Any = 16,
         zero_centered_gamma: bool = False,
         device: str = 'cuda',
@@ -836,6 +837,7 @@ class AutocastTransformerLayer(TransformerLayer):
             ub_bulk_dgrad=ub_bulk_dgrad,
             ub_overlap_ag=ub_overlap_ag,
             ub_overlap_rs=ub_overlap_rs,
+            ub_overlap_rs_dgrad=ub_overlap_rs_dgrad,
             device=device,
         )
         # use_emha=use_emha,
@@ -1088,6 +1090,7 @@ class ParallelTransformer(MegatronModule):
                     ub_bulk_dgrad=config.tp_comm_bulk_dgrad,
                     ub_overlap_ag=config.tp_comm_overlap_ag,
                     ub_overlap_rs=config.tp_comm_overlap_rs,
+                    ub_overlap_rs_dgrad=config.tp_comm_overlap_rs_dgrad,
                     zero_centered_gamma=normalization == 'layernorm1p',
                     device='cpu' if config.use_cpu_initialization else 'cuda',
                 )
