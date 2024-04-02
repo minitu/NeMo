@@ -63,9 +63,6 @@ class AutocastTransformerLayer(TransformerLayer):
         device: str = 'cuda',
         **kwargs,
     ) -> None:
-        if not HAVE_MEGATRON_CORE or not HAVE_TE:
-            raise ImportError(IMPORT_ERROR)
-
         transformer_layer_args = {
             "hidden_size": hidden_size,
             "ffn_hidden_size": ffn_hidden_size,
