@@ -22,6 +22,7 @@ import torch.nn.functional as F
 from megatron.core import parallel_state
 from megatron.core.transformer.enums import AttnMaskType
 from megatron.core.transformer.spec_utils import ModuleSpec
+from megatron.core.utils import get_batch_on_this_cp_rank
 from torch import Tensor, nn
 
 import nemo.collections.llm.gpt.model.base as GPTBase
@@ -91,7 +92,7 @@ def nv_embedding_data_step(dataloder_iter) -> Dict[str, torch.Tensor]:
 
     _batch = {key: val.cuda(non_blocking=True) if key in required_keys else None for key, val in _batch.items()}
     # slice batch along sequence dimension for context parallelism
-    output = GPTBase.get_batch_on_this_context_parallel_rank(_batch)
+    output = get_batch_on_this_cp_rank(_batch)
 
     return output
 
@@ -129,9 +130,9 @@ class Llama32EmbeddingConfig1B(Llama32Config1B):
     add_bos: bool = True
     add_eos: bool = False
 
-    def configure_model(self, tokenizer, pre_process=None, post_process=None) -> "MCoreGPTModel":
+    def configure_model(self, tokenizer, pre_process=None, post_process=None, vp_stage=None) -> "MCoreGPTModel":
         """Configure the NV Embedding Llama3.2 1B Model"""
-        model = super().configure_model(tokenizer, pre_process, post_process)
+        model = super().configure_model(tokenizer, pre_process, post_process, vp_stage)
         # post_process need to be overwritten to False after model init because
         # final_layernorm is still needed and it will only be initialized when post_process is True in Mcore.
         # And for forward(), we do not want to run through output_layer thus setting post_process to False.
@@ -157,9 +158,9 @@ class Llama32EmbeddingConfig3B(Llama32Config3B):
     add_bos: bool = True
     add_eos: bool = False
 
-    def configure_model(self, tokenizer, pre_process=None, post_process=None) -> "MCoreGPTModel":
+    def configure_model(self, tokenizer, pre_process=None, post_process=None, vp_stage=None) -> "MCoreGPTModel":
         """Configure the NV Embedding Llama3.2 3B Model"""
-        model = super().configure_model(tokenizer, pre_process, post_process)
+        model = super().configure_model(tokenizer, pre_process, post_process, vp_stage)
         # post_process need to be overwritten to False after model init because
         # final_layernorm is still needed and it will only be initialized when post_process is True in Mcore.
         # And for forward(), we do not want to run through output_layer thus setting post_process to False.
