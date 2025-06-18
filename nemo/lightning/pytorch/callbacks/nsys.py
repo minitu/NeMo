@@ -95,6 +95,23 @@ class NsysCallback(Callback):
         )
         self._has_nsys_enabled = False
 
+        # If start_step is -1, we start profiling before start of training
+        if self._nsys_profile_start_step == -1:
+            self._enable_nsys()
+
+    def _enable_nsys(self):
+        self._has_nsys_enabled = True
+        torch.cuda.cudart().cudaProfilerStart()
+        if self._nsys_profile_gen_shape:
+            torch.autograd.profiler.emit_nvtx(record_shapes=True).__enter__()
+        else:
+            torch.autograd.profiler.emit_nvtx().__enter__()
+
+    def _disable_nsys(self):
+        self._has_nsys_enabled = False
+        torch.cuda.cudart().cudaProfilerStop()
+        torch.autograd.profiler.emit_nvtx().__exit__(None, None, None)
+
     def _rank_is_active(self, trainer):
         # TODO(@akoumparouli): is this function cache-able?
         from lightning.pytorch.strategies import SingleDeviceStrategy
@@ -115,12 +132,7 @@ class NsysCallback(Callback):
 
         current_step = get_current_epoch_step(trainer)
         if current_step == self._nsys_profile_start_step and not self._has_nsys_enabled:
-            self._has_nsys_enabled = True
-            torch.cuda.cudart().cudaProfilerStart()
-            if self._nsys_profile_gen_shape:
-                torch.autograd.profiler.emit_nvtx(record_shapes=True).__enter__()
-            else:
-                torch.autograd.profiler.emit_nvtx().__enter__()
+            self._enable_nsys()
 
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx: int) -> None:
         """PyTorch Lightning hook:
@@ -132,6 +144,4 @@ class NsysCallback(Callback):
 
         current_step = get_current_epoch_step(trainer)
         if current_step == self._nsys_profile_end_step and self._has_nsys_enabled:
-            torch.cuda.cudart().cudaProfilerStop()
-            torch.autograd.profiler.emit_nvtx().__exit__(None, None, None)
-            self._has_nsys_enabled = False
+            self._disable_nsys()
